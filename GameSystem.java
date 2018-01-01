@@ -127,7 +127,7 @@ public class GameSystem {
                             ordinary_people();
                         }
                         else if(c == 19) {   //神犬
-                            dog();
+                            dog(player, i);
                         }
                         else if((c >= 20) && (c <= 23)) {//情報交換
                             player[i][option] = 0;  //出過的牌消失
@@ -212,8 +212,30 @@ public class GameSystem {
     }
 
     //神犬
-    public void dog(){
-        
+    public void dog(int player[][], int p){
+        int i = 0;
+        int cho = 0;
+
+        System.out.println("指定任一名玩家，要他丟棄一張手牌。");
+        System.out.println("請選擇：(輸入數字)");
+        Scanner scn = new Scanner(System.in);
+        i = scn.nextInt() - 1;
+
+        //被選到的玩家端
+        System.out.println("玩家" + (i + 1) + "你被選到了！你想要丟棄手中哪一張卡呢？");
+        show(i);
+        Scanner scn2 = new Scanner(System.in); //挑丟棄的卡
+        cho = scn2.nextInt() - 1;
+
+        if(player[i][cho] == 2) {   //被選到的卡片是犯人卡
+            winner = 1;     //非犯人得分
+            catcher[0] = p; //紀錄神犬成功抓到犯人
+            crime[i] = 1;   //被選到的玩家為犯人
+            consequence(winner);
+        }
+        else{   //被選到的卡片不是犯人卡
+            player[i][cho] = 19;     //被選到的卡片消失，且換成神犬這張卡
+        }
     }
 
     //情報交換 大 -> 小
