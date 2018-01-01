@@ -5,19 +5,60 @@ public class GameSystem {
     int people = 0; //玩家人數
     int card[] = new int[33];   //所有卡片種類與數量
     int player[][] = new int[8][4]; //紀錄每個玩家擁有的卡片
-    int win = 0;    //這局是否結束
+    int end = 0;    //這局是否結束
     int option = 0; //玩家選擇的卡片
     int crime[] = new int[8]; //紀錄犯人與共犯
+    int catcher[] = new int[2]; //紀錄抓到犯人的 0：神犬（加3分）  1：偵探（加2分）
+    int winner = 0; //紀錄最後玩家是 0：犯罪的一群 1：沒有犯罪的一群
+    int grade[] = new int[8];   //最後成績
+        
+    // 一、使用「偵探」抓到犯人：使用「偵探」的人得2分，其他人得1分，犯人和共犯不能得分。
+    // 二、使用「神犬」或「警部」抓到犯人：使用「神犬」或「警部」的人得3分，其他人得1分，犯人和共犯不能得分。
+    // 三、打出「犯人」卡獲勝：犯人和共犯得2分，其他人不能得分。
+    // 一名玩家先得到10分，遊戲就會結束。    
 
-    public int judge_points() {
-        // 一、使用「偵探」抓到犯人：使用「偵探」的人得2分，其他人得1分，犯人和共犯不能得分。
-        // 二、使用「神犬」或「警部」抓到犯人：使用「神犬」或「警部」的人得3分，其他人得1分，犯人和共犯不能得分。
-        // 三、打出「犯人」卡獲勝：犯人和共犯得2分，其他人不能得分。
-        // 一名玩家先得到10分，遊戲就會結束。
-        return win;
+    GameSystem(){
+        catcher[0] = 9;
+        catcher[1] = 9;
     }
 
-    public int own_card(int who, int player[][]) {  //判斷某個玩家有多少張卡片
+    //紀錄最後總成績
+    public void consequence(int winner) {
+        if(winner == 1) {   //沒犯罪的贏了
+            for(int i = 0; i < people; i++) {
+                if(catcher[0] == i) {   //神犬加 3 分
+                    grade[i] = 3;
+                }
+                else if(catcher[1] == i) {  //偵探加 2 分
+                    grade[i] = 2;
+                }
+                else if(crime[i] == 1){ //罪犯沒有得到分數
+                    grade[i] = 0;
+                }
+                else {  //剩下的其他人加 1 分
+                    grade[i] = 1;
+                }
+            }
+        }
+        else {  //犯罪的贏了
+            for(int i = 0; i < people; i++) {
+                grade[i] = crime[i] * 2;
+            }
+        }
+        System.out.println("此局結束！分數如下：");
+        System.out.println("------------------------");
+        for(int i = 0; i < people; i++) {
+            System.out.println("| ✿ 第 " + (i + 1) + " 位玩家： " + grade[i] + " 分 |");
+        }
+        System.out.println("------------------------");
+        
+        end = 1;
+        Main re = new Main();
+        re.restart();   //重新開始
+    }
+
+    //判斷某個玩家有多少張卡片
+    public int own_card(int who, int player[][]) {  
         int total = 0;
         for(int i = 0; i < 4; i++) {
             if(player[who][i] != 0) {
@@ -27,13 +68,14 @@ public class GameSystem {
         return total;
     }
     
-    public void judge_first(int people, int player[][]){
+    //從有第一發現者的人開始
+    public void judge_first(int people, int player[][]){   
         int c = 0;
         for(int i = 0; i < people; i++) {
             for(int j = 0; j < 4; j++){
                 if(player[i][j] == 1){  //搜尋哪個玩家有第一發現者
                     Player a = new Player();    
-                    while(win == 0) {
+                    while(end == 0) {
                         option = a.choose_card(i, player);  //出牌
                         c = player[i][option];  //出的那張牌是哪張
                         
@@ -50,14 +92,25 @@ public class GameSystem {
                                 crime[i] = 1;
                             }
                             else {  //不符合
-                                System.out.println("當手上只有這張卡時才能出。");
+                                System.out.println("當手上只有這張卡時才能出！！！");
                                 i--;    //再選牌一次
                             }
                         }
                         else if((c >= 3) && (c <= 6)) { // 偵探
-                            detective();
+                            int total = 0;
+                            total = own_card(i, player);    //判斷是否符合出卡條件
+                            if(total <= 3) {    //符合
+                                player[i][option] = 0;  //出過的牌消失
+                                detective(i);
+                            }
+                            else {  //不符合
+                                System.out.println("當手上只剩 3 張卡以下時才能出！！！");
+                                i--;    //再選牌一次
+                            }
+                            
                         }
                         else if((c >= 7) && (c <= 11)) {  //不在場證明
+                            player[i][option] = 0;  //出過的牌消失
                             alibi();
                         }
                         else if((c >= 12) && (c <= 13)) { //共犯
@@ -94,24 +147,47 @@ public class GameSystem {
             }
         }
     }
+
     //第一發現者
     public void first(){        
-        System.out.println("你是第一發現者！由你開始！");
+        System.out.println("我是第一發現者！由我開始！");
     }
 
     //犯人
     public void prisoner(int i, int player[][]){  
-        
+        System.out.println("我是犯人啦哈哈哈哈！");        
     }
 
     //偵探
-    public void detective(){ 
-        
+    public void detective(int p){ 
+        int i = 0, a = 0, b = 0;
+        System.out.println("可以指定任何一位玩家，並猜他（她）是犯人，猜對就贏了。");
+        System.out.println("請選擇：(輸入數字)");
+        Scanner scn = new Scanner(System.in);
+        i = scn.nextInt() - 1;
+        for(int j = 0; j < 4; j++) {
+            if(player[i][j] == 2) { //有犯人卡
+                a = 1;
+            }
+            if((player[i][j] > 6) && (player[i][j] < 12)) { //有不在場證明
+                b = 1;
+            }
+        }
+        if((a == 1) && (b != 1)){
+            System.out.println((i + 1) + "是犯人！");
+            winner = 1;
+            catcher[1] = p; //紀錄偵探成功抓到犯人
+            crime[i] = 1;
+            consequence(winner);
+        }
+        else {
+            System.out.println((i + 1) + "不是犯人！");
+        }
     }
 
     //不在場證明
     public void alibi(){
-        
+        System.out.println("我有不在場證明，才不是犯人呢！");      
     }
 
     //共犯
@@ -126,7 +202,7 @@ public class GameSystem {
         System.out.println("請選擇：(輸入數字)");
         Scanner scn = new Scanner(System.in);
         i = scn.nextInt() - 1;
-        System.out.println("正在偷看玩家" + (i + 1) + "的手牌～");
+        System.out.println("正在偷看玩家" + (i + 1) + "的手牌～");
         show(i);
     }
 
@@ -175,7 +251,7 @@ public class GameSystem {
             cho[i] = scn.nextInt() - 1;
         }
 
-        //系統做交換 --------------------------------------------------------從此開始
+        //系統做交換 
         tem = player[0][cho[people - 1]];
         player[0][cho[people - 1]] =  player[1][cho[0]];
         for(int i = 1; i < people - 1; i++) {
@@ -208,6 +284,7 @@ public class GameSystem {
         player[i][cho2] = tem;
     }
 
+    //秀出某個玩家的手牌
     public void show(int i){
         System.out.println("第" +  (i + 1) + "個玩家的卡片：");
         for(int j = 0; j < 4; j++){
@@ -216,6 +293,7 @@ public class GameSystem {
             System.out.println();
         }
     }  
+
     //玩家隨機選卡（在決定好的卡片內選）
     public void player_card_distribution(int card[], int player[][], int people){
         int[] lucky = new int[people * 4];
@@ -250,31 +328,8 @@ public class GameSystem {
                 index++;
             }
         }
-        // for(int i = 0; i < people; i++) {
-        //     for(int j = 0; j < 4; j++){
-               
-        //         Card b = new Card();
-        //         System.out.println("第" +  (i + 1) + "個玩家的卡片：" + player[i][j]);
-        //         b.card_name(player[i][j]);
-        //         System.out.println();
-        //     }
-        // }
-
-
-        // Vector v = new Vector();
-        // for (int i = 0; i < people; i++) {
-        //     v.add(new Player());
-        // }
-        // for(int i = 0; i < people; i++) {
-        //     for(int j = 0; j < 4; j++) {
-        //         Object a = v.get(i);
-        //         a.cards[j] = lucky[index];
-        //         index++;
-        //     }
-        // } 
         judge_first(people, player);
     }
-
 
     //未指定的隨機選卡
     public void random_norepeat_number(int player[][], int card[], int choose[], int num, int front, int back){
@@ -363,7 +418,7 @@ public class GameSystem {
 
     }
 
-    //玩家有幾人
+    //玩家人數
     public void how_many_players() {
         Scanner scn = new Scanner(System.in);
         System.out.println("請輸入有多少玩家：（人數限制：3 ~ 8 人）");
